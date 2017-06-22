@@ -1,4 +1,6 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -43,7 +45,7 @@ namespace ReadHTMLToJson
                 var sbParsedXml = new StringBuilder();
                 var stringWriter = new StringWriter(sbParsedXml);
 
-                var htmlDoc = new HtmlAgilityPack.HtmlDocument();
+                var htmlDoc = new HtmlDocument();
                 htmlDoc.LoadHtml(htmlCode);
                 htmlDoc.OptionOutputAsXml = true;
                 htmlDoc.OptionCheckSyntax = true;
@@ -52,19 +54,68 @@ namespace ReadHTMLToJson
                 htmlDoc.Save(stringWriter);
 
                 Console.WriteLine("Let's convert it to JSON");
-                XmlDocument doc = new XmlDocument();
-                doc.LoadXml(sbParsedXml.ToString());
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(sbParsedXml.ToString());
 
-                string json = Newtonsoft.Json.JsonConvert.SerializeXmlNode(doc);
+                List<int> startIndexes = new List<int>();
+                List<int> endIndexes = new List<int>();
+
+                string json = Newtonsoft.Json.JsonConvert.SerializeXmlNode(xmlDoc);
+
+                int counter = 0;
+
+                for (int index = json.IndexOf("/*"); index >= 0; index = json.IndexOf("/*", index + 1))
+                {
+                    counter++;
+                }
+
+                if (counter > 0)
+                {
+                    for (int i = 0; i < counter; i++)
+                    {
+                        for (int index = json.IndexOf("/*"); index >= 0; index = json.IndexOf("/*", index + 1))
+                        {
+                            startIndexes.Add(index);
+                            break;
+                        }
+                        for (int index = json.IndexOf("*/"); index >= 0; index = json.IndexOf("*/", index + 1))
+                        {
+                            endIndexes.Add(index);
+                            break;
+                        }
+
+                        if (endIndexes[i] + 2 > startIndexes[i])
+                        {
+                            string toCut = json.Substring(startIndexes[i], endIndexes[i] + 2 - startIndexes[i]);
+                            json = json.Replace(toCut, string.Empty);
+                        }
+                    }
+                }
+
+
                 File.WriteAllText(path, json);
-                Console.ReadLine();
-            }
-        }
+                Console.WriteLine("File saved");
 
-        static string RemoveBetween(string s, string begin, string end)
-        {
-            Regex regex = new Regex(string.Format("\\{0}.*?\\{1}", begin, end));
-            return regex.Replace(s, string.Empty);
+                //===========================================Read Content==========================================================
+
+                /*var webGet = new HtmlWeb();
+                var document = webGet.Load("http://"+linkToHtml);
+
+                var aTags = document.DocumentNode.SelectNodes("//a");
+                int counter2 = 1;
+                StringBuilder sbb = new StringBuilder();
+                if (aTags != null)
+                {
+                    foreach (var aTag in aTags)
+                    {
+                        sbb.Append(counter2 + ". " + aTag.InnerHtml + " - " + aTag.Attributes["href"].Value + "\t" + "<br />");
+                        counter++;
+                    }
+                }
+
+                 File.WriteAllText(path, document.ToString());    */
+                 
+            }
         }
     }
 }
