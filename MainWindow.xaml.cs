@@ -20,7 +20,7 @@ namespace ElkWindowProject
         private void btnStart_Click(object sender, RoutedEventArgs e)
         {
             string linkToHtml = "";
-            string path = "file.xml";
+            string path = "JsonFile.json";
 
             linkToHtml = tbWebsite.Text;
             string pattern = @"^(www.|[a-zA-Z].)[a-zA-Z0-9\-\.]+\.(com|pl|edu|ru|gov|mil|net|org|biz|info|name|museum|us|ca|uk)(\:[0-9]+)*(/($|[a-zA-Z0-9\.\,\;\?\'\\\+&amp;%\$#\=~_\-]+))*$";
@@ -68,38 +68,24 @@ namespace ElkWindowProject
 
                     string json = Newtonsoft.Json.JsonConvert.SerializeXmlNode(xmlDoc);
 
-                    int counter = 0;
-
-                    for (int index = json.IndexOf("/*"); index >= 0; index = json.IndexOf("/*", index + 1))
+                    //int counter = 0;
+                    string commentsPattern = @"\/\*([\s\S]*?)\*\/";
+                    Regex comment = new Regex(commentsPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                    while (json.Contains("/*") && json.Contains("*/"))
                     {
-                        counter++;
+                        json = json.Replace(comment.Match(json).ToString(), string.Empty);
                     }
-
-                    if (counter > 0)
+                    try
                     {
-                        for (int i = 0; i < counter; i++)
-                        {
-                            for (int index = json.IndexOf("/*"); index >= 0; index = json.IndexOf("/*", index + 1))
-                            {
-                                startIndexes.Add(index);
-                                break;
-                            }
-                            for (int index = json.IndexOf("*/"); index >= 0; index = json.IndexOf("*/", index + 1))
-                            {
-                                endIndexes.Add(index);
-                                break;
-                            }
-
-                            if (endIndexes[i] + 2 > startIndexes[i])
-                            {
-                                string toCut = json.Substring(startIndexes[i], endIndexes[i] + 2 - startIndexes[i]);
-                                json = json.Replace(toCut, string.Empty);
-                            }
-                        }
+                        File.WriteAllText(path, json);
+                        lbInfo.Foreground = System.Windows.Media.Brushes.Green;
+                        lbInfo.Content = "File sucessfuly saved";
                     }
-                    File.WriteAllText(path, json);
-                    lbInfo.Foreground = System.Windows.Media.Brushes.Green;
-                    lbInfo.Content = "File sucessfuly saved";
+                    catch (Exception ex)
+                    {
+                        lbInfo.Foreground = System.Windows.Media.Brushes.Red;
+                        lbInfo.Content = "There was problem while saving file. Check path and try again.";
+                    }
                 }
                 catch (Exception ex)
                 {
